@@ -1,0 +1,1 @@
+This folder contains the necessary scripts to run the automated tests
