@@ -1,0 +1,1 @@
+This folder contains sample data for the scripts to be consumed when needed for the tests execution
