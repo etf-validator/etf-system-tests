@@ -35,4 +35,24 @@ module.exports = {
       .assert.visible("#test-reports-page")
       .assert.hidden("#start-tests-page")
   },
+
+  'Re-run test': (browser) => {
+    browser
+      .url(URL)
+      .waitForElementVisible(".ui-block-c")
+      .click(".ui-block-c")
+      .waitForElementVisible('#test-reports-page',10000)
+      .assert.visible('#test-reports-page')
+      .assert.hidden('#start-tests-page')
+      .useXpath()
+      .click('xpath','/html/body/div[4]/div[2]/ul/li[2]/h2/a')
+      .waitForElementPresent('/html/body/div[4]/div[2]/ul/li[2]/div/div/div[2]/a[5]',10000)
+      .click('xpath','/html/body/div[4]/div[2]/ul/li[2]/div/div/div[2]/a[5]')
+      .waitForElementVisible('/html/body/div[12]/div[2]/div[1]/div[3]/div/fieldset[1]/div[2]/div[1]/label',20000)
+      .click('xpath','/html/body/div[12]/div[2]/div[1]/div[3]/div/fieldset[1]/div[2]/div[1]/label')
+      .waitForElementVisible('/html/body/div[12]/div[2]/div[1]/div[1]/div/table/tbody/tr[6]/td[2]/a',10000)
+      .click('xpath','/html/body/div[12]/div[2]/div[1]/div[1]/div/table/tbody/tr[6]/td[2]/a')
+      .waitForElementVisible('/html/body/pre',10000)
+      .assert.not.containsText('/html/body/pre','NullPointerException')
+  },
 };
