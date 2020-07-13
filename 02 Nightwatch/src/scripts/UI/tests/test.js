@@ -1,10 +1,12 @@
 const assert = require('assert');
+const uuid = require('uuid');
 
 const PORT = 80;
 
 //server.listen(PORT);
 
-const URL = `http://staging-inspire-validator.eu-west-1.elasticbeanstalk.com:${PORT}/etf-webapp`;
+const URL = `http://staging-inspire-validator.eu-west-1.elasticbeanstalk.com/etf-webapp`;
+const testRunLabel = "Automated Test " + uuid();
 
 module.exports = {
 
@@ -36,23 +38,66 @@ module.exports = {
       .assert.hidden("#start-tests-page")
   },
 
-  'Re-run test': (browser) => {
+  "Get ExecutableTestSuite ID": function(client) {
+    var apiUrl = URL + '/v2/ExecutableTestSuites.json?offset=0&limit=500&fields=id%sClabel';
+    client.apiGet(apiUrl, function(response) {
+      var jsonResponse = JSON.parse(response.body);
+      console.log(jsonResponse);
+      if (jsonResponse.EtfItemCollection.returnedItems > 0) {
+        jsonResponse.EtfItemCollection.executableTestSuites.ExecutableTestSuite.forEach(function(ts, index) {
+          if (ts.label == 'WFS 2.0 (OGC 09-025r2/ISO 19142) Conformance Test Suite') {
+            testSuiteId = ts.id;
+            console.log('TestSuite ID: ' + testSuiteId);
+          }
+        });
+      }
+      client.assert.equal(response.statusCode, 200, "200 OK");
+      client.end();
+    });
+  },
+
+  "Create new TestRun": function(client) {
+    var apiUrl = URL + '/v2/TestRuns';
+    var postData = {
+      "label": testRunLabel,
+      "executableTestSuiteIds": [testSuiteId],
+      "arguments": {},
+      "testObject": {
+        "resources": {
+          "serviceEndpoint": "http://www.juntadeandalucia.es/fomentoyvivienda/IDE/laboratorioscalidad/servicios/wms?service=WFS&amp;request=GetCapabilities"
+        }
+      }
+    };
+    var postHeader = {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    };
+    client.apiPost(apiUrl, postData, postHeader, undefined, function(response) {
+      console.log(response.body);
+      testRunId = response.body.EtfItemCollection.testRuns.TestRun.id;
+      console.log("TestRun ID: " + testRunId);
+      client.assert.equal(response.statusCode, 201, "201 OK");
+      client.end();
+    });
+  },
+
+  "Re-run test": (browser) => {
     browser
       .url(URL)
       .waitForElementVisible(".ui-block-c")
       .click(".ui-block-c")
-      .waitForElementVisible('#test-reports-page',10000)
+      .waitForElementVisible('#test-reports-page', 10000)
       .assert.visible('#test-reports-page')
       .assert.hidden('#start-tests-page')
       .useXpath()
-      .click('xpath','/html/body/div[4]/div[2]/ul/li[2]/h2/a')
-      .waitForElementPresent('/html/body/div[4]/div[2]/ul/li[2]/div/div/div[2]/a[5]',10000)
-      .click('xpath','/html/body/div[4]/div[2]/ul/li[2]/div/div/div[2]/a[5]')
-      .waitForElementVisible('/html/body/div[12]/div[2]/div[1]/div[3]/div/fieldset[1]/div[2]/div[1]/label',20000)
-      .click('xpath','/html/body/div[12]/div[2]/div[1]/div[3]/div/fieldset[1]/div[2]/div[1]/label')
-      .waitForElementVisible('/html/body/div[12]/div[2]/div[1]/div[1]/div/table/tbody/tr[6]/td[2]/a',10000)
-      .click('xpath','/html/body/div[12]/div[2]/div[1]/div[1]/div/table/tbody/tr[6]/td[2]/a')
-      .waitForElementVisible('/html/body/pre',10000)
-      .assert.not.containsText('/html/body/pre','NullPointerException')
+      .waitForElementPresent('//a[contains(.,\'' + testRunLabel + '\')]', 10000)
+      .click('xpath', '//a[contains(.,\'' + testRunLabel + '\')]')
+      .waitForElementPresent('//a[contains(.,\'Run test again\')]', 10000)
+      .click('xpath', '//a[contains(.,\'Run test again\')]')
+      .waitForElementVisible('//label[contains(.,\'All details\')]', 20000)
+      .click('xpath', '//label[contains(.,\'All details\')]')
+      .waitForElementVisible('//tr[td[contains(.,\'Log URI\')]]/td[2]/a', 10000)
+      .click('xpath', '//tr[td[contains(.,\'Log URI\')]]/td[2]/a')
+      .waitForElementVisible('/html/body/pre[not(contains(.,\'NullPointerException\'))]', 10000)
   },
 };
