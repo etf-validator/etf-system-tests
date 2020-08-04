@@ -1,11 +1,7 @@
 const assert = require('assert');
 const uuid = require('uuid');
 
-const PORT = 80;
-
-//server.listen(PORT);
-
-const URL = `http://staging-inspire-validator.eu-west-1.elasticbeanstalk.com/etf-webapp`;
+const URL = `http://cicd03/etf-webapp`;
 const testRunLabel = "Automated Test " + uuid();
 
 module.exports = {
